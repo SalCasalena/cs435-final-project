@@ -83,6 +83,7 @@ def main() -> None:
             imgsz=TRAIN_IMGSZ,
             batch=TRAIN_BATCH,
             workers=TRAIN_WORKERS,
+            device=resolve_device(),
             cache=TRAIN_CACHE,
             amp=True,
         )
