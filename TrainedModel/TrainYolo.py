@@ -1,3 +1,5 @@
+#To run this file cd into the TrainedModel folder and run: python TrainYolo.py
+#To Train set TRAIN_MODEL to True and adjust TRAIN_EPOCHS as needed. 
 from pathlib import Path
 import importlib
 import os
@@ -80,7 +82,6 @@ def main() -> None:
             epochs=TRAIN_EPOCHS,
             imgsz=TRAIN_IMGSZ,
             batch=TRAIN_BATCH,
-            device=train_device,
             workers=TRAIN_WORKERS,
             cache=TRAIN_CACHE,
             amp=True,
