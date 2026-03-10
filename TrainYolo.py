@@ -3,112 +3,25 @@
 #   python TrainYolo.py --train
 #   python TrainYolo.py --test
 #   python TrainYolo.py --train --test
+#   python TrainYolo.py --score
+#   python TrainYolo.py --train --score
 #   python TrainYolo.py --train --epochs 10 --dataset "archive/Traffic Signs"
 #   python TrainYolo.py --test --image giveWay.jpg --weights runs/detect/train/weights/best.pt
-
+from utils import (
+    resolve_device,
+    find_latest_best_weights,
+    build_local_data_yaml,
+    save_confusion_matrix_each_epoch
+)
 from pathlib import Path
+from ultralytics import YOLO
 import argparse
 import os
-import shutil
-
 import cv2
-import torch
-from ultralytics import YOLO
-
 
 BASE_MODEL = "yolo11n.pt"
 DEFAULT_DATASET_ROOT = "./archive/Traffic Signs"
 DEFAULT_TEST_IMAGE = "giveWay.jpg"
-
-
-def resolve_device() -> str:
-    if torch.cuda.is_available():
-        return "0"
-    return "cpu"
-
-
-def find_latest_best_weights() -> Path | None:
-    runs_dir = Path("runs/detect")
-    if not runs_dir.exists():
-        return None
-
-    candidates = list(runs_dir.glob("*/weights/best.pt"))
-    if not candidates:
-        return None
-
-    return max(candidates, key=lambda p: p.stat().st_mtime)
-
-
-def build_local_data_yaml(dataset_root: Path) -> Path:
-    train_images = dataset_root / "train" / "images"
-    val_images = dataset_root / "valid" / "images"
-    train_labels = dataset_root / "train" / "labels"
-    val_labels = dataset_root / "valid" / "labels"
-
-    if not train_images.exists() or not val_images.exists():
-        raise FileNotFoundError(
-            f"Expected folders not found under {dataset_root}:\n"
-            f"  - {train_images}\n"
-            f"  - {val_images}"
-        )
-
-    if not train_labels.exists() or not val_labels.exists():
-        raise FileNotFoundError(
-            f"Expected folders not found under {dataset_root}:\n"
-            f"  - {train_labels}\n"
-            f"  - {val_labels}"
-        )
-
-    template = Path("data.yaml")
-    if not template.exists():
-        raise FileNotFoundError("Could not find data.yaml in the current folder.")
-
-    lines = template.read_text(encoding="utf-8").splitlines()
-    updated = []
-
-    for line in lines:
-        if line.startswith("train:"):
-            updated.append(f"train: {train_images.resolve().as_posix()}")
-        elif line.startswith("val:"):
-            updated.append(f"val: {val_images.resolve().as_posix()}")
-        else:
-            updated.append(line)
-
-    out_file = Path("data.local.yaml")
-    out_file.write_text("\n".join(updated) + "\n", encoding="utf-8")
-    return out_file
-
-
-def save_confusion_matrix_each_epoch(trainer) -> None:
-    """
-    Copies Ultralytics-generated confusion matrix images into a per-epoch folder.
-
-    This assumes validation is running and Ultralytics has written one or both of:
-      - confusion_matrix.png
-      - confusion_matrix_normalized.png
-    into the run directory by the end of the epoch.
-    """
-    epoch_num = trainer.epoch + 1
-    save_dir = Path(trainer.save_dir)
-
-    epoch_dir = save_dir / "epoch_confusion_matrices"
-    epoch_dir.mkdir(parents=True, exist_ok=True)
-
-    candidates = [
-        save_dir / "confusion_matrix.png",
-        save_dir / "confusion_matrix_normalized.png",
-    ]
-
-    copied_any = False
-    for src in candidates:
-        if src.exists():
-            dst = epoch_dir / f"epoch_{epoch_num:03d}_{src.name}"
-            shutil.copy2(src, dst)
-            print(f"Saved {dst}")
-            copied_any = True
-
-    if not copied_any:
-        print(f"No confusion matrix image found to copy after epoch {epoch_num}.")
 
 
 def train_model(args) -> Path | None:
@@ -156,6 +69,72 @@ def train_model(args) -> Path | None:
         print("Could not automatically find best.pt after training.")
 
     return best_path
+
+
+def score_model(args, weights_override: Path | None = None) -> None:
+    if weights_override is not None:
+        weights_path = weights_override
+    elif args.weights:
+        weights_path = Path(args.weights)
+    else:
+        latest = find_latest_best_weights()
+        if latest is None:
+            raise FileNotFoundError(
+                "No weights provided and no best.pt found in runs/detect."
+            )
+        weights_path = latest
+
+    if not weights_path.exists():
+        raise FileNotFoundError(f"Weights file not found: {weights_path}")
+
+    dataset_root = Path(args.dataset.strip())
+    local_data_yaml = Path("data.local.yaml")
+    if not local_data_yaml.exists():
+        local_data_yaml = build_local_data_yaml(dataset_root)
+
+    print(f"\nScoring model: {weights_path.resolve()}")
+    print(f"Validation data: {local_data_yaml.resolve()}\n")
+
+    model = YOLO(str(weights_path))
+    metrics = model.val(data=str(local_data_yaml), device=resolve_device(), plots=True)
+
+    mp = metrics.box.mp
+    mr = metrics.box.mr
+    map50 = metrics.box.map50
+    map5095 = metrics.box.map
+
+    class_names = model.names  # {id: name}
+    ap50_per_class = metrics.box.ap50      # array aligned to ap_class_index
+    ap_per_class = metrics.box.ap          # mAP50-95 per class
+    class_indices = metrics.box.ap_class_index
+
+    lines = []
+    lines.append("=" * 64)
+    lines.append("  SCORING REPORT")
+    lines.append("=" * 64)
+    lines.append(f"  Weights  : {weights_path}")
+    lines.append(f"  Data     : {local_data_yaml}")
+    lines.append("-" * 64)
+    lines.append(f"  {'Metric':<30} {'Value':>10}")
+    lines.append("-" * 64)
+    lines.append(f"  {'Precision (mean)':<30} {mp:>10.4f}")
+    lines.append(f"  {'Recall (mean)':<30} {mr:>10.4f}")
+    lines.append(f"  {'mAP@0.50':<30} {map50:>10.4f}")
+    lines.append(f"  {'mAP@0.50:0.95':<30} {map5095:>10.4f}")
+    lines.append("=" * 64)
+    lines.append(f"  {'Class':<30} {'AP50':>8}  {'AP50-95':>8}")
+    lines.append("-" * 64)
+    for idx, cls_id in enumerate(class_indices):
+        name = class_names.get(int(cls_id), str(cls_id))
+        lines.append(f"  {name:<30} {ap50_per_class[idx]:>8.4f}  {ap_per_class[idx]:>8.4f}")
+    lines.append("=" * 64)
+
+    report = "\n".join(lines)
+    print(report)
+
+    report_path = weights_path.parent.parent / "scoring_report.txt"
+    report_path.write_text(report + "\n", encoding="utf-8")
+    print(f"\nReport saved to: {report_path}")
 
 
 def test_model(args, weights_override: Path | None = None) -> None:
@@ -222,6 +201,7 @@ def parse_args():
 
     parser.add_argument("--train", action="store_true", help="Train the model")
     parser.add_argument("--test", action="store_true", help="Test the model on an image")
+    parser.add_argument("--score", action="store_true", help="Run validation scoring report")
 
     parser.add_argument(
         "--dataset",
@@ -280,8 +260,8 @@ def parse_args():
 
     args = parser.parse_args()
 
-    if not args.train and not args.test:
-        parser.error("You must pass at least one flag: --train and/or --test")
+    if not args.train and not args.test and not args.score:
+        parser.error("You must pass at least one flag: --train, --test, and/or --score")
 
     return args
 
@@ -293,6 +273,9 @@ def main():
 
     if args.train:
         trained_best = train_model(args)
+
+    if args.score:
+        score_model(args, weights_override=trained_best)
 
     if args.test:
         test_model(args, weights_override=trained_best)
