@@ -49,7 +49,6 @@ def train_model(args) -> Path | None:
         amp=True,
         project=args.project,
         name=args.name,
-        exist_ok=True,
         plots=True,
     )
 
@@ -241,8 +240,8 @@ def parse_args():
     parser.add_argument(
         "--name",
         type=str,
-        default="train",
-        help="Run name inside the project directory",
+        default=None,
+        help="Run name inside the project directory (default: auto-incremented by Ultralytics)",
     )
 
     parser.add_argument(
