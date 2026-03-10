@@ -1,0 +1,70 @@
+================================================================
+  SCORING REPORT
+================================================================
+  Weights  : runs\detect\runs\detect\yolo11n-20epoch-640px\weights\best.pt
+  Data     : data.local.yaml
+----------------------------------------------------------------
+  Metric                              Value
+----------------------------------------------------------------
+  Precision (mean)                   0.5689
+  Recall (mean)                      0.5621
+  mAP@0.50                           0.5890
+  mAP@0.50:0.95                      0.5170
+================================================================
+  Class                              AP50   AP50-95
+----------------------------------------------------------------
+  forb_ahead                       0.9719    0.8643
+  forb_left                        0.6629    0.5719
+  forb_overtake                    0.9383    0.8322
+  forb_right                       0.9875    0.8878
+  forb_speed_over_10               0.5486    0.5103
+  forb_speed_over_100              0.7376    0.6727
+  forb_speed_over_130              0.5145    0.4682
+  forb_speed_over_30               0.9002    0.7793
+  forb_speed_over_40               0.2913    0.2665
+  forb_speed_over_5                0.5400    0.5004
+  forb_speed_over_50               0.7706    0.6673
+  forb_speed_over_60               0.2903    0.2499
+  forb_speed_over_70               0.3217    0.3151
+  forb_speed_over_80               0.4816    0.3873
+  forb_speed_over_90               0.0446    0.0332
+  forb_stopping                    0.9651    0.8720
+  forb_trucks                      0.0000    0.0000
+  forb_u_turn                      0.2320    0.2038
+  forb_weight_over_3.5t            0.7358    0.6084
+  forb_weight_over_7.5t            0.4119    0.3853
+  info_bus_station                 0.6851    0.6198
+  info_crosswalk                   0.9531    0.8019
+  info_highway                     0.5973    0.4230
+  info_one_way_traffic             0.7401    0.6360
+  info_parking                     0.7470    0.6110
+  info_taxi_parking                0.6092    0.5650
+  mand_bike_lane                   0.4523    0.4154
+  mand_left                        0.1392    0.1297
+  mand_left_right                  0.1662    0.1662
+  mand_pass_left                   0.1255    0.1129
+  mand_pass_left_right             0.8463    0.7019
+  mand_pass_right                  0.7238    0.6207
+  mand_right                       0.9174    0.8063
+  mand_roundabout                  0.9872    0.9122
+  mand_straigh_left                0.2487    0.2213
+  mand_straight                    0.3967    0.3382
+  mand_straight_right              0.7529    0.6671
+  prio_give_way                    0.9713    0.8302
+  prio_priority_road               0.9791    0.8770
+  prio_stop                        0.9853    0.9230
+  warn_children                    0.6132    0.5404
+  warn_construction                0.3958    0.3368
+  warn_crosswalk                   0.8526    0.7214
+  warn_cyclists                    0.8274    0.7242
+  warn_domestic_animals            0.1545    0.1271
+  warn_other_dangers               0.4653    0.4119
+  warn_poor_road_surface           0.4501    0.3703
+  warn_roundabout                  0.5915    0.5049
+  warn_slippery_road               0.2785    0.1785
+  warn_speed_bumper                0.5700    0.5255
+  warn_traffic_light               0.8600    0.7676
+  warn_tram                        0.5482    0.4986
+  warn_two_way_traffic             0.1697    0.1651
+  warn_wild_animals                0.6566    0.5896
+================================================================
