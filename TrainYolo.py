@@ -11,7 +11,8 @@ from utils import (
     resolve_device,
     find_latest_best_weights,
     build_local_data_yaml,
-    save_confusion_matrix_each_epoch
+    save_confusion_matrix_each_epoch,
+    validate_dataset_class_ids,
 )
 from pathlib import Path
 from ultralytics import YOLO
@@ -31,6 +32,9 @@ def train_model(args) -> Path | None:
         raise FileNotFoundError(f"Dataset root not found: {dataset_root}")
 
     print(f"Using dataset at: {dataset_root.resolve()}")
+
+    # Fail fast on dataset metadata mismatches instead of silently skipping labels.
+    validate_dataset_class_ids(dataset_root)
 
     local_data_yaml = build_local_data_yaml(dataset_root)
     print(f"Training with config: {local_data_yaml.resolve()}")
@@ -87,9 +91,7 @@ def score_model(args, weights_override: Path | None = None) -> None:
         raise FileNotFoundError(f"Weights file not found: {weights_path}")
 
     dataset_root = Path(args.dataset.strip())
-    local_data_yaml = Path("data.local.yaml")
-    if not local_data_yaml.exists():
-        local_data_yaml = build_local_data_yaml(dataset_root)
+    local_data_yaml = build_local_data_yaml(dataset_root)
 
     print(f"\nScoring model: {weights_path.resolve()}")
     print(f"Validation data: {local_data_yaml.resolve()}\n")
@@ -217,19 +219,9 @@ def parse_args():
 
     parser.add_argument("--epochs", type=int, default=3, help="Number of training epochs")
     parser.add_argument("--imgsz", type=int, default=320, help="Training image size")
-    parser.add_argument("--batch", type=int, default=-1, help="Batch size (-1 = auto)")
-    parser.add_argument(
-        "--workers",
-        type=int,
-        default=max(2, (os.cpu_count() or 4) - 2),
-        help="Number of dataloader workers",
-    )
-    parser.add_argument(
-        "--cache",
-        type=str,
-        default="ram",
-        help="Dataset cache mode (e.g. ram, disk, False)",
-    )
+    parser.add_argument("--batch", type=int, default=16, help="Batch size")
+    parser.add_argument("--workers", type=int, default=0, help="Number of dataloader workers")
+    parser.add_argument("--cache", type=str, default="disk", help="Dataset cache mode")
 
     parser.add_argument(
         "--project",
