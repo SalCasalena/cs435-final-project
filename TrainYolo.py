@@ -1,4 +1,8 @@
 # TrainYolo.py
+
+#   python TrainYolo.py --score --dataset "archive/Traffic Signs" --weights "runs\detect\runs\detect\yolo11n-20epoch-640px\weights\best.pt"
+#   python TrainYolo.py --train --imgsz 640 --epochs 20 --name "yolo11n-20epoch-640px"
+
 # Examples:
 #   python TrainYolo.py --train
 #   python TrainYolo.py --test
@@ -220,7 +224,7 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=3, help="Number of training epochs")
     parser.add_argument("--imgsz", type=int, default=320, help="Training image size")
     parser.add_argument("--batch", type=int, default=32, help="Batch size")
-    parser.add_argument("--workers", type=int, default=2, help="Number of dataloader workers")
+    parser.add_argument("--workers", type=int, default=4, help="Number of dataloader workers")
     parser.add_argument("--cache", type=str, default="disk", help="Dataset cache mode")
 
     parser.add_argument(
